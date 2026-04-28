@@ -18,20 +18,22 @@ async function connectToDatabase() {
     }
 
     try {
+        // ✅ Updated connection (NO deprecated options)
         await mongoose.connect(process.env.MONGODB_URI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 10000,
+            serverSelectionTimeoutMS: 10000, // optional but useful
         });
 
         databaseReady = true;
         databaseError = null;
+
         console.log('✅ MongoDB Connected');
         return process.env.MONGODB_URI;
+
     } catch (error) {
         databaseReady = false;
         databaseError = error;
-        console.error('MongoDB Error:', error);
+
+        console.error('❌ MongoDB Error:', error.message);
         throw error;
     }
 }
