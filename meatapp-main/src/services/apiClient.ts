@@ -41,9 +41,7 @@ async function readErrorMessage(response: Response) {
         if (typeof parsed?.message === 'string') {
             return parsed.message;
         }
-    } catch {
-        // Ignore JSON parse failures and use the raw body.
-    }
+    } catch {}
 
     return text.slice(0, 200);
 }
@@ -68,7 +66,9 @@ export async function requestResponse(path: string, init: RequestInit = {}, sett
     let lastError: unknown;
 
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    const url = `${BASE_URL}/api${normalizedPath}`;
+
+    // ✅ FIX: Removed extra /api
+const url = `${BASE_URL}/api${normalizedPath}`;
 
     for (let attempt = 0; attempt <= retries; attempt += 1) {
         const controller = new AbortController();
@@ -79,25 +79,26 @@ export async function requestResponse(path: string, init: RequestInit = {}, sett
             clearTimeout(timeout);
 
             if (!response.ok && shouldRetryStatus(response.status) && attempt < retries) {
-                console.warn(`[api] retrying ${path} after HTTP ${response.status} from ${BASE_URL}/api`);
+                console.warn(`[api] retrying ${path} after HTTP ${response.status} from ${BASE_URL}`);
                 await sleep(200 * (attempt + 1));
                 continue;
             }
 
-            return { response, baseUrl: `${BASE_URL}/api` };
+            return { response, baseUrl: BASE_URL };
         } catch (error) {
             clearTimeout(timeout);
             lastError = error;
 
             const isAbortError = error instanceof Error && error.name === 'AbortError';
             const isNetworkError = isAbortError || error instanceof TypeError;
+
             const message = isAbortError
                 ? `Request timed out after ${timeoutMs}ms`
                 : error instanceof Error
                     ? error.message
                     : 'Unknown network error';
 
-            console.warn(`[api] attempt ${attempt + 1} failed for ${path} via ${BASE_URL}/api: ${message}`);
+            console.warn(`[api] attempt ${attempt + 1} failed for ${path} via ${BASE_URL}: ${message}`);
 
             if (attempt < retries && isNetworkError) {
                 await sleep(250 * (attempt + 1));
@@ -109,10 +110,10 @@ export async function requestResponse(path: string, init: RequestInit = {}, sett
     }
 
     if (lastError instanceof Error) {
-        throw createRequestError(lastError.message, `${BASE_URL}/api`, path, { isNetworkError: true, cause: lastError });
+        throw createRequestError(lastError.message, BASE_URL, path, { isNetworkError: true, cause: lastError });
     }
 
-    throw createRequestError('Unable to reach the backend server.', `${BASE_URL}/api`, path, { isNetworkError: true });
+    throw createRequestError('Unable to reach the backend server.', BASE_URL, path, { isNetworkError: true });
 }
 
 export async function requestJson<T>(path: string, init: RequestInit = {}, settings?: { retries?: number; timeoutMs?: number }) {
@@ -129,5 +130,6 @@ export async function requestJson<T>(path: string, init: RequestInit = {}, setti
 
     const text = await response.text();
     const data = text ? JSON.parse(text) as T : undefined;
+
     return { data, response, baseUrl };
 }

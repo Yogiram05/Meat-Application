@@ -228,7 +228,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         setApiStatus('checking');
         setApiMessage('Checking backend connectivity...');
         try {
-            const { baseUrl } = await requestJson('/config', { method: 'GET' }, { retries: 1, timeoutMs: 30000 });
+            const { baseUrl } = await requestJson('/config', { method: 'GET' }, { retries: 1, timeoutMs: 20000 });
             markApiOnline(baseUrl);
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Unable to reach the backend server.';

@@ -176,7 +176,7 @@ export default function OrderHistoryScreen({ navigation }: { navigation: any }) 
     const fetchOrders = async () => {
         if (!currentUser?.id) { setLoading(false); return; }
         try {
-            const { data, baseUrl, response } = await requestJson<any[]>(`/orders/user/${currentUser.id}`, { method: 'GET' }, { retries: 1, timeoutMs: 30000 });
+            const { data, baseUrl, response } = await requestJson<any[]>(`/orders/user/${currentUser.id}`, { method: 'GET' }, { retries: 1, timeoutMs: 20000 });
             console.log(`[orders] fetched via ${baseUrl}`);
             if (response.ok && Array.isArray(data)) setOrders(data);
         } catch (err) {

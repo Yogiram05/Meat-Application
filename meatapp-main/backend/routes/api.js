@@ -6,17 +6,6 @@ const Order   = require('../models/Order');
 const Config  = require('../models/Config');
 const User    = require('../models/User');
 
-router.get('/', (req, res) => {
-    res.json({
-        success: true,
-        message: 'Meat Booking API is Running!',
-    });
-});
-
-router.get('/health', (req, res) => {
-    res.status(200).json({ status: 'ok' });
-});
-
 // ==========================================
 // AUTH API
 // ==========================================

@@ -41,7 +41,7 @@ export default function AdminLoginScreen({ navigation }: { navigation: any }) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: trimmedEmail, password }),
-            }, { retries: 1, timeoutMs: 30000 });
+            }, { retries: 1, timeoutMs: 20000 });
 
             console.log(`[admin] login response via ${baseUrl}`, { success: data?.success, status: response.status });
 

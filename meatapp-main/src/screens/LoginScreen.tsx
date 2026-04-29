@@ -44,7 +44,7 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ gmail: gmail.trim(), password }),
-            }, { retries: 1, timeoutMs: 30000 });
+            }, { retries: 1, timeoutMs: 20000 });
             const data = await response.json();
             console.log(`[auth] login request completed via ${baseUrl}`);
             if (!response.ok) {

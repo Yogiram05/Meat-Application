@@ -1,39 +1,20 @@
 const express = require('express');
 const cors = require('cors');
+const os = require('os');
 const bcrypt = require('bcryptjs');
-const { connectToDatabase, isDatabaseReady, getDatabaseError } = require('./config/db');
+const { connectToDatabase } = require('./config/db');
 const Admin = require('./models/Admin');
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3001;
+const PORT = 3001;
 
 // Middleware
-app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true,
-}));
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use((req, res, next) => {
     console.log('📡 API HIT:', req.method, req.url);
     next();
 });
-
-function requireDatabase(req, res, next) {
-    if (req.path === '/' || req.path === '/health') {
-        return next();
-    }
-
-    if (isDatabaseReady()) {
-        return next();
-    }
-
-    const errorMessage = getDatabaseError()?.message || 'Database connection is not ready yet.';
-    return res.status(503).json({
-        success: false,
-        error: errorMessage,
-    });
-}
 
 function normalizeEmail(value) {
     return String(value ?? '').trim().toLowerCase();
@@ -88,7 +69,7 @@ async function upsertConfiguredAdmin(configuredAdmin, password) {
     );
 }
 
-app.post('/api/admin/login', requireDatabase, async (req, res) => {
+app.post('/api/admin/login', async (req, res) => {
     try {
         const email = normalizeEmail(req.body.email || req.body.gmail);
         const password = String(req.body.password || '').trim();
@@ -156,32 +137,40 @@ app.post('/api/admin/login', requireDatabase, async (req, res) => {
 
 // Routes
 const apiRoutes = require('./routes/api');
-app.use('/api', requireDatabase, apiRoutes);
-app.use('/api/auth', requireDatabase, apiRoutes);
+app.use('/api', apiRoutes);
 const paymentRoutes = require('./routes/payment.routes');
 app.use('/api/payment', paymentRoutes);
+
+function getLocalIpAddress() {
+    const interfaces = os.networkInterfaces();
+
+    for (const interfaceAddresses of Object.values(interfaces)) {
+        if (!interfaceAddresses) {
+            continue;
+        }
+
+        for (const address of interfaceAddresses) {
+            if (address && address.family === 'IPv4' && !address.internal) {
+                return address.address;
+            }
+        }
+    }
+
+    return 'localhost';
+}
 
 app.get('/', (req, res) => {
     res.send('Meat Booking API is Running!');
 });
 
-app.get('/api/health', (req, res) => {
-    res.status(200).json({ status: 'ok' });
-});
-
-app.use((err, req, res, next) => {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
-});
-
 // Start Server
 async function startServer() {
-    connectToDatabase().catch((error) => {
-        console.error('Database connection is unavailable:', error.message);
-    });
+    await connectToDatabase();
+    const localIpAddress = getLocalIpAddress();
 
-    app.listen(PORT, '0.0.0.0', () => {
-        console.log(`🚀 Server running on port ${PORT}`);
+    app.listen(3001, '0.0.0.0', () => {
+        console.log(`🌐 Network available at http://${localIpAddress}:${PORT}`);
+        console.log('🚀 Server running on port 3001');
     });
 }
 
