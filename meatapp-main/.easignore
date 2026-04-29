@@ -1,0 +1,9 @@
+node_modules
+.git
+.gitignore
+.env
+.env.local
+android/.gradle
+android/build
+android/app/build
+ios/build
