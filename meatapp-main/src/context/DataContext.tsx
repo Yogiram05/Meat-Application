@@ -74,10 +74,19 @@ export interface Order {
     items: CartItem[];
     total: number;
     date: string;
+    userId?: string | null;
+    userName?: string;
+    customerName?: string;
+    customerPhone?: string;
+    customerEmail?: string;
+    customerAddress?: string;
+    paymentMethod?: string;
+    paymentStatus?: string;
     status: 'Pending' | 'Processing' | 'Delivered' | 'Cancelled' | 'Confirmed' | 'Declined';
     isPreBooking?: boolean;
     advancePaid?: number;
     description?: string;
+    declineReason?: string;
 }
 
 export interface ShopConfig {
@@ -125,6 +134,7 @@ interface DataContextType {
     // Orders
     orders: Order[];
     placeOrder: (order: Omit<Order, 'id'>) => Promise<boolean>;
+    refreshOrders: () => Promise<void>;
     updateOrderStatus: (id: string, status: string, reason?: string) => void;
     formatCurrency: (amount: number | string) => string;
     // Auth
@@ -181,6 +191,24 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         await AsyncStorage.removeItem('adminSession');
     };
 
+    const refreshOrders = async () => {
+        try {
+            const { data, baseUrl } = await requestJson<any[]>('/orders', { method: 'GET' }, { retries: 1, timeoutMs: 20000 });
+            markApiOnline(baseUrl);
+            const normalizedOrders = Array.isArray(data)
+                ? data.map((order) => ({
+                    ...order,
+                    id: order?.id || order?._id,
+                    date: order?.date || order?.createdAt || new Date().toISOString(),
+                } as Order))
+                : [];
+            setOrders(normalizedOrders);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Could not load orders.';
+            markApiOffline(message);
+        }
+    };
+
     // ── On app start: restore session ─────────────────────────────────────
     useEffect(() => {
         if (didInitializeRef.current) {
@@ -212,6 +240,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         retryConnection();
         fetchProducts();
         fetchConfig();
+        refreshOrders();
     }, []);
 
     const markApiOnline = (baseUrl: string) => {
@@ -376,7 +405,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         const orderPayload = {
             ...order,
             userId:   currentUser?.id   || null,
-            userName: currentUser?.username || 'Guest',
+            userName: order.userName || currentUser?.username || 'Guest',
+            customerName: order.customerName || currentUser?.username || 'Guest',
+            customerEmail: order.customerEmail || currentUser?.gmail || '',
         };
         try {
             const { data, baseUrl, response } = await requestJson<any>('/orders', {
@@ -386,19 +417,22 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
             }, { retries: 1 });
             markApiOnline(baseUrl);
             if (response.ok) {
-                setOrders(prev => [{ ...data, id: data._id } as Order, ...prev]);
+                const rawOrder = data?.order || data;
+                const savedOrder = {
+                    ...rawOrder,
+                    id: rawOrder?.id || rawOrder?._id,
+                    date: rawOrder?.date || rawOrder?.createdAt || new Date().toISOString(),
+                } as Order;
+                setOrders(prev => [savedOrder, ...prev.filter(existing => existing.id !== savedOrder.id)]);
                 clearCart();
+                await refreshOrders();
                 return true;
             }
             return false;
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Could not place order.';
             markApiOffline(message);
-            // Fallback: save locally
-            const localOrder = { ...order, id: Date.now().toString() } as Order;
-            setOrders(prev => [localOrder, ...prev]);
-            clearCart();
-            return true;
+            return false;
         }
     };
 
@@ -426,6 +460,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
             currentUser, setCurrentUser, logout,
             adminSession, isAdminAuthenticated: !!adminSession, adminLogin, adminLogout,
             BACKEND_URL,
+            refreshOrders,
         }}>
             {children}
         </DataContext.Provider>

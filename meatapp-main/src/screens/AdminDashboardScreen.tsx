@@ -51,7 +51,7 @@ const getCategoryLabel = (category: any) => {
 
 export default function AdminDashboardScreen({ navigation }: { navigation: any }) {
     const {
-        orders, updateOrderStatus, formatCurrency,
+        orders, updateOrderStatus, formatCurrency, refreshOrders,
         shopStatus, chickenRate, muttonRate, updateConfig,
         products, updateProduct, addProduct, deleteProduct, isLoadingProducts, refreshProducts, refreshAll,
         adminSession, adminLogout,
@@ -103,6 +103,23 @@ export default function AdminDashboardScreen({ navigation }: { navigation: any }
     const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
     const CATEGORIES = ['All', 'Chicken', 'Mutton', 'SubProduct'];
+
+    React.useEffect(() => {
+        refreshOrders();
+    }, []);
+
+    React.useEffect(() => {
+        if (activeTab !== 'Orders') {
+            return;
+        }
+
+        refreshOrders();
+        const interval = setInterval(() => {
+            refreshOrders();
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, [activeTab]);
 
     const filteredProducts = categoryFilter && categoryFilter !== 'All'
         ? products.filter(p => matchesCategory(p, categoryFilter))
@@ -296,11 +313,12 @@ export default function AdminDashboardScreen({ navigation }: { navigation: any }
             </View>
             <View style={styles.divider} />
             <View style={styles.cardBody}>
-                <View style={styles.customerRow}>
+                <View style={styles.customerColumn}>
                     <Ionicons name="person-circle" size={32} color={Colors.textLight} />
-                    <View style={{ marginLeft: 8 }}>
-                        <Text style={styles.customerName}>Customer</Text>
+                    <View style={{ marginLeft: 8, flex: 1 }}>
+                        <Text style={styles.customerName}>{item.customerName || item.userName || 'Guest'}</Text>
                         <Text style={styles.itemCount}>{item.items?.length ?? 0} Items</Text>
+                        <Text style={styles.paymentMeta}>{item.paymentMethod || 'Cash on Delivery'} • {item.paymentStatus || 'Pending'}</Text>
                     </View>
                 </View>
                 <Text style={styles.totalAmount}>{formatCurrency(item.total)}</Text>
@@ -534,6 +552,12 @@ export default function AdminDashboardScreen({ navigation }: { navigation: any }
                                 <Text style={styles.labelSmall}>ORDER ID</Text>
                                 <Text style={styles.value}>#{selectedOrder?.id.toString().slice(-6).toUpperCase()}</Text>
                             </View>
+                            <View style={styles.modalSection}>
+                                <Text style={styles.labelSmall}>CUSTOMER</Text>
+                                <Text style={styles.value}>{selectedOrder?.customerName || selectedOrder?.userName || 'Guest'}</Text>
+                                {!!selectedOrder?.customerPhone && <Text style={styles.itemMeta}>{selectedOrder.customerPhone}</Text>}
+                                {!!selectedOrder?.customerAddress && <Text style={styles.itemMeta}>{selectedOrder.customerAddress}</Text>}
+                            </View>
                             <View style={styles.divider} />
                             <Text style={styles.sectionHeader}>Items</Text>
                             {selectedOrder?.items?.map((item: any, index: number) => (
@@ -545,6 +569,12 @@ export default function AdminDashboardScreen({ navigation }: { navigation: any }
                                     <Text style={styles.itemPrice}>{formatCurrency(item.price)}</Text>
                                 </View>
                             ))}
+                            <View style={styles.divider} />
+                            <View style={styles.modalSection}>
+                                <Text style={styles.labelSmall}>PAYMENT</Text>
+                                <Text style={styles.value}>{selectedOrder?.paymentMethod || 'Cash on Delivery'}</Text>
+                                <Text style={styles.itemMeta}>{selectedOrder?.paymentStatus || 'Pending'}</Text>
+                            </View>
                             <View style={styles.divider} />
                             <View style={styles.totalRow}>
                                 <Text style={styles.totalLabel}>Total Amount</Text>
@@ -797,8 +827,10 @@ const styles = StyleSheet.create({
     divider: { height: 1, backgroundColor: '#F3F4F6', marginVertical: Spacing.m },
     cardBody: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.m },
     customerRow: { flexDirection: 'row', alignItems: 'center' },
+    customerColumn: { flexDirection: 'row', alignItems: 'center', flex: 1, paddingRight: Spacing.s },
     customerName: { fontWeight: '600', color: Colors.text, fontSize: 14 },
     itemCount: { fontSize: 12, color: Colors.textLight },
+    paymentMeta: { fontSize: 12, color: Colors.textLight, marginTop: 2 },
     totalAmount: { ...Typography.h3, color: Colors.primary },
     cardActions: { flexDirection: 'row', gap: Spacing.m },
     btnAccept: { flex: 1, backgroundColor: Colors.primary, paddingVertical: 12, borderRadius: 8, alignItems: 'center' },

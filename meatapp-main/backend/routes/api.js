@@ -5,6 +5,12 @@ const Product = require('../models/Product');
 const Order   = require('../models/Order');
 const Config  = require('../models/Config');
 const User    = require('../models/User');
+const {
+    createOrder,
+    listOrders,
+    listUserOrders,
+    updateOrderStatus,
+} = require('../controllers/orderController');
 
 // ==========================================
 // AUTH API
@@ -125,51 +131,16 @@ router.delete('/products/:id', async (req, res) => {
 // ==========================================
 
 // GET all orders (admin)
-router.get('/orders', async (req, res) => {
-    try {
-        const orders = await Order.find().sort({ date: -1 });
-        res.json(orders);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+router.get('/orders', listOrders);
 
 // GET orders for a specific user
-router.get('/orders/user/:userId', async (req, res) => {
-    try {
-        const orders = await Order.find({ userId: req.params.userId }).sort({ date: -1 });
-        res.json(orders);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+router.get('/orders/user/:userId', listUserOrders);
 
 // PLACE a new order
-router.post('/orders', async (req, res) => {
-    try {
-        const newOrder = new Order(req.body);
-        const savedOrder = await newOrder.save();
-        res.json(savedOrder);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+router.post('/orders', createOrder);
 
 // UPDATE order status (admin)
-router.put('/orders/:id/status', async (req, res) => {
-    try {
-        const { status, declineReason } = req.body;
-        const updateData = { status };
-        if (declineReason) updateData.declineReason = declineReason;
-
-        const updatedOrder = await Order.findByIdAndUpdate(
-            req.params.id, updateData, { new: true }
-        );
-        res.json(updatedOrder);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+router.put('/orders/:id/status', updateOrderStatus);
 
 // ==========================================
 // CONFIG API (Shop Status & Rates)

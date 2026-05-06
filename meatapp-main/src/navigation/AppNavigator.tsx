@@ -14,10 +14,11 @@ import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
 import OrderHistoryScreen from '../screens/OrderHistoryScreen';
 import ProductDetailsScreen from '../screens/ProductDetailsScreen';
-import PaymentHistoryScreen from '../screens/PaymentHistoryScreen';
 import CartScreen from '../screens/CartScreen';
 import AdminDashboardScreen from '../screens/AdminDashboardScreen';
+import RazorpayScreen from '../screens/RazorpayScreen'; // ✅ MUST
 
+// ✅ TYPE FIX (name MUST match)
 export type RootStackParamList = {
     Login: undefined;
     AdminLogin: undefined;
@@ -26,6 +27,8 @@ export type RootStackParamList = {
     AdminDashboard: undefined;
     ProductDetails: { product: any };
     Cart: undefined;
+
+    Razorpay: { orderId: string; amount: number }; // ✅ IMPORTANT
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -64,32 +67,43 @@ export default function AppNavigator() {
         if (!isAdminAuthenticated) {
             return <AdminLoginScreen {...props} />;
         }
-
         return <AdminDashboardScreen {...props} />;
     };
 
     return (
         <NavigationContainer>
             <NetworkStatusBanner />
+
             <Stack.Navigator
                 initialRouteName="Login"
                 screenOptions={{ headerShown: false }}
             >
-                {/* Auth Routes */}
+                {/* Auth */}
                 <Stack.Screen name="Login" component={LoginScreen} />
                 <Stack.Screen name="AdminLogin" component={AdminLoginScreen} />
                 <Stack.Screen name="Register" component={RegisterScreen} />
+
+                {/* Main */}
                 <Stack.Screen name="Main" component={MainTabs} />
+
                 <Stack.Screen
                     name="ProductDetails"
                     component={ProductDetailsScreen}
-                    options={{ headerShown: false }}
                 />
+
                 <Stack.Screen
                     name="Cart"
                     component={CartScreen}
-                    options={{ headerShown: false, title: 'My Cart' }}
+                    options={{ title: 'My Cart' }}
                 />
+
+                {/* 🔥 PAYMENT SCREEN */}
+                <Stack.Screen
+                    name="Razorpay"
+                    component={RazorpayScreen}
+                />
+
+                {/* Admin */}
                 <Stack.Screen
                     name="AdminDashboard"
                     component={ProtectedAdminDashboard}
